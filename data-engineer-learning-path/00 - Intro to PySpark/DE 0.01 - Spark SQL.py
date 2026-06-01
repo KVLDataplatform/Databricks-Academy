@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md-sandbox
-# MAGIC 
+# MAGIC
 # MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 # MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 # MAGIC </div>
@@ -9,16 +9,16 @@
 
 # MAGIC %md
 # MAGIC # Spark SQL
-# MAGIC 
+# MAGIC
 # MAGIC Demonstrate fundamental concepts in Spark SQL using the DataFrame API.
-# MAGIC 
+# MAGIC
 # MAGIC ##### Objectives
 # MAGIC 1. Run a SQL query
 # MAGIC 1. Create a DataFrame from a table
 # MAGIC 1. Write the same query using DataFrame transformations
 # MAGIC 1. Trigger computation with DataFrame actions
 # MAGIC 1. Convert between DataFrames and SQL
-# MAGIC 
+# MAGIC
 # MAGIC ##### Methods
 # MAGIC - <a href="https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/spark_session.html" target="_blank">SparkSession</a>: **`sql`**, **`table`**
 # MAGIC - <a href="https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/dataframe.html" target="_blank">DataFrame</a>:
@@ -28,13 +28,19 @@
 
 # COMMAND ----------
 
+# DBTITLE 1,Override DBR version check
+spark.conf.set("dbacademy.runtime.check", "warn")
+spark.conf.set("spark.databricks.acl.needAdminPermissionForDbConversion", "false")
+
+# COMMAND ----------
+
 # MAGIC %run ../Includes/Classroom-Setup-00.01
 
 # COMMAND ----------
 
 # MAGIC %md ## Multiple Interfaces
 # MAGIC Spark SQL is a module for structured data processing with multiple interfaces.
-# MAGIC 
+# MAGIC
 # MAGIC We can interact with Spark SQL in two ways:
 # MAGIC 1. Executing SQL queries
 # MAGIC 1. Working with the DataFrame API.
@@ -43,7 +49,7 @@
 
 # MAGIC %md
 # MAGIC **Method 1: Executing SQL queries**
-# MAGIC 
+# MAGIC
 # MAGIC This is a basic SQL query.
 
 # COMMAND ----------
@@ -57,7 +63,7 @@
 # COMMAND ----------
 
 # MAGIC %md **Method 2: Working with the DataFrame API**
-# MAGIC 
+# MAGIC
 # MAGIC We can also express Spark SQL queries using the DataFrame API.
 # MAGIC The following cell returns a DataFrame containing the same results as those retrieved above.
 
@@ -78,21 +84,21 @@ display(spark
 
 # MAGIC %md ## Query Execution
 # MAGIC We can express the same query using any interface. The Spark SQL engine generates the same query plan used to optimize and execute on our Spark cluster.
-# MAGIC 
+# MAGIC
 # MAGIC ![query execution engine](https://files.training.databricks.com/images/aspwd/spark_sql_query_execution_engine.png)
-# MAGIC 
+# MAGIC
 # MAGIC <img src="https://files.training.databricks.com/images/icon_note_32.png" alt="Note"> Resilient Distributed Datasets (RDDs) are the low-level representation of datasets processed by a Spark cluster. In early versions of Spark, you had to write <a href="https://spark.apache.org/docs/latest/rdd-programming-guide.html" target="_blank">code manipulating RDDs directly</a>. In modern versions of Spark you should instead use the higher-level DataFrame APIs, which Spark automatically compiles into low-level RDD operations.
 
 # COMMAND ----------
 
 # MAGIC %md ## Spark API Documentation
-# MAGIC 
+# MAGIC
 # MAGIC To learn how we work with DataFrames in Spark SQL, let's first look at the Spark API documentation.
 # MAGIC The main Spark <a href="https://spark.apache.org/docs/latest/" target="_blank">documentation</a> page includes links to API docs and helpful guides for each version of Spark.
-# MAGIC 
+# MAGIC
 # MAGIC The <a href="https://spark.apache.org/docs/latest/api/scala/org/apache/spark/index.html" target="_blank">Scala API</a> and <a href="https://spark.apache.org/docs/latest/api/python/index.html" target="_blank">Python API</a> are most commonly used, and it's often helpful to reference the documentation for both languages.
 # MAGIC Scala docs tend to be more comprehensive, and Python docs tend to have more code examples.
-# MAGIC 
+# MAGIC
 # MAGIC #### Navigating Docs for the Spark SQL Module
 # MAGIC Find the Spark SQL module by navigating to **`org.apache.spark.sql`** in the Scala API or **`pyspark.sql`** in the Python API.
 # MAGIC The first class we'll explore in this module is the **`SparkSession`** class. You can find this by entering "SparkSession" in the search bar.
@@ -102,7 +108,7 @@ display(spark
 # MAGIC %md
 # MAGIC ## SparkSession
 # MAGIC The **`SparkSession`** class is the single entry point to all functionality in Spark using the DataFrame API.
-# MAGIC 
+# MAGIC
 # MAGIC In Databricks notebooks, the SparkSession is created for you, stored in a variable called **`spark`**.
 
 # COMMAND ----------
@@ -121,7 +127,7 @@ products_df = spark.table("products")
 
 # MAGIC %md
 # MAGIC Below are several additional methods we can use to create DataFrames. All of these can be found in the <a href="https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.sql.SparkSession.html" target="_blank">documentation</a> for **`SparkSession`**.
-# MAGIC 
+# MAGIC
 # MAGIC #### **`SparkSession`** Methods
 # MAGIC | Method | Description |
 # MAGIC | --- | --- |
@@ -150,7 +156,7 @@ display(result_df)
 
 # MAGIC %md ## DataFrames
 # MAGIC Recall that expressing our query using methods in the DataFrame API returns results in a DataFrame. Let's store this in the variable **`budget_df`**.
-# MAGIC 
+# MAGIC
 # MAGIC A **DataFrame** is a distributed collection of data grouped into named columns.
 
 # COMMAND ----------
@@ -173,7 +179,7 @@ display(budget_df)
 # COMMAND ----------
 
 # MAGIC %md The **schema** defines the column names and types of a dataframe.
-# MAGIC 
+# MAGIC
 # MAGIC Access a dataframe's schema using the **`schema`** attribute.
 
 # COMMAND ----------
@@ -192,7 +198,7 @@ budget_df.printSchema()
 
 # MAGIC %md ## Transformations
 # MAGIC When we created **`budget_df`**, we used a series of DataFrame transformation methods e.g. **`select`**, **`where`**, **`orderBy`**.
-# MAGIC 
+# MAGIC
 # MAGIC <strong><code>products_df  
 # MAGIC &nbsp;  .select("name", "price")  
 # MAGIC &nbsp;  .where("price < 200")  
@@ -201,7 +207,7 @@ budget_df.printSchema()
 # MAGIC     
 # MAGIC Transformations operate on and return DataFrames, allowing us to chain transformation methods together to construct new DataFrames.
 # MAGIC However, these operations can't execute on their own, as transformation methods are **lazily evaluated**.
-# MAGIC 
+# MAGIC
 # MAGIC Running the following cell does not trigger any computation.
 
 # COMMAND ----------
@@ -216,7 +222,7 @@ budget_df.printSchema()
 # MAGIC %md ## Actions
 # MAGIC Conversely, DataFrame actions are methods that **trigger computation**.
 # MAGIC Actions are needed to trigger the execution of any DataFrame transformations.
-# MAGIC 
+# MAGIC
 # MAGIC The **`show`** action causes the following cell to execute transformations.
 
 # COMMAND ----------
@@ -230,7 +236,7 @@ budget_df.printSchema()
 # COMMAND ----------
 
 # MAGIC %md Below are several examples of <a href="https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql.html#dataframe-apis" target="_blank">DataFrame</a> actions.
-# MAGIC 
+# MAGIC
 # MAGIC ### DataFrame Action Methods
 # MAGIC | Method | Description |
 # MAGIC | --- | --- |
@@ -279,7 +285,7 @@ display(spark.sql("SELECT * FROM budget"))
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC Run the following cell to delete the tables and files associated with this lesson.
 
 # COMMAND ----------

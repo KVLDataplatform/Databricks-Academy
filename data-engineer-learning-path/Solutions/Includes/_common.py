@@ -75,8 +75,8 @@ course_config = CourseConfig(course_code = "delp",
                              install_min_time = "2 min",
                              install_max_time = "10 min",
                              remote_files = remote_files,
-                             supported_dbrs = ["11.3.x-scala2.12", "11.3.x-photon-scala2.12", "11.3.x-cpu-ml-scala2.12"],
-                             expected_dbrs = "11.3.x-scala2.12, 11.3.x-photon-scala2.12, 11.3.x-cpu-ml-scala2.12")
+                             supported_dbrs = ["10.4.x-scala2.12", "10.4.x-photon-scala2.12", "11.3.x-scala2.12", "11.3.x-photon-scala2.12", "11.3.x-cpu-ml-scala2.12", "12.2.x-scala2.12", "12.2.x-photon-scala2.12", "13.3.x-scala2.12", "13.3.x-photon-scala2.12", "14.3.x-scala2.12", "14.3.x-photon-scala2.12", "15.4.x-scala2.12", "15.4.x-photon-scala2.12"],
+                             expected_dbrs = "10.4.x-scala2.12, 10.4.x-photon-scala2.12, 11.3.x-scala2.12, 11.3.x-photon-scala2.12, 11.3.x-cpu-ml-scala2.12, 12.2.x-scala2.12, 12.2.x-photon-scala2.12, 13.3.x-scala2.12, 13.3.x-photon-scala2.12, 14.3.x-scala2.12, 14.3.x-photon-scala2.12, 15.4.x-scala2.12, 15.4.x-photon-scala2.12")
 
 # Defined here for the majority of lessons, 
 # and later modified on a per-lesson basis.
