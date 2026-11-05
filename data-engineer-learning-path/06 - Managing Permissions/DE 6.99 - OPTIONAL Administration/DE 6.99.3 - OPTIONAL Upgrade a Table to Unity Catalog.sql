@@ -1,6 +1,6 @@
 -- Databricks notebook source
 -- MAGIC %md-sandbox
--- MAGIC 
+-- MAGIC
 -- MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 -- MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 -- MAGIC </div>
@@ -9,7 +9,7 @@
 
 -- MAGIC %md
 -- MAGIC # Upgrade a table to Unity Catalog
--- MAGIC 
+-- MAGIC
 -- MAGIC In this notebook you will learn how to:
 -- MAGIC * Migrate a table from the existing legacy Hive metastore to Unity Catalog
 -- MAGIC * Create appropriate grants to enable others to access the table
@@ -19,7 +19,7 @@
 
 -- MAGIC %md
 -- MAGIC ## Set Up
--- MAGIC 
+-- MAGIC
 -- MAGIC Run the following cells to perform some setup. In order to avoid conflicts in a shared training environment, this will create a uniquely named database exclusively for your use. This will also create an example source table called **movies** within the legacy Hive metatore. 
 
 -- COMMAND ----------
@@ -30,7 +30,7 @@
 
 -- MAGIC %md
 -- MAGIC Within the legacy Hive metastore local to this workspace, we now have a table called **movies**, residing in a the user-specific database outlined in the cell output from above. To make things easier, the database name is stored in a Hive variable named *DA.my_schema_name*. Let's preview the data stored in this table using that variable.
--- MAGIC 
+-- MAGIC
 -- MAGIC We use this unique database name in the hive metastore to avoid potentially interfering with others in a shared training environment.
 
 -- COMMAND ----------
@@ -41,14 +41,14 @@ SELECT * FROM hive_metastore.`${DA.my_schema_name}`.movies LIMIT 10
 
 -- MAGIC %md
 -- MAGIC ## Set up destination
--- MAGIC 
+-- MAGIC
 -- MAGIC With a source table in place, let's set up a destination in Unity Catalog to migrate our table to.
 
 -- COMMAND ----------
 
 -- MAGIC %md
 -- MAGIC ### Select Unity Catalog metastore for usage
--- MAGIC 
+-- MAGIC
 -- MAGIC A catalog was created for you with a user-specific name, stored in the variable **DA.catalog_name**. Let's begin by selecting this catalog from the Unity Catalog metastore. This eliminates the need to have to specify a catalog in your table references.
 
 -- COMMAND ----------
@@ -59,9 +59,9 @@ USE CATALOG `${DA.catalog_name}`
 
 -- MAGIC %md
 -- MAGIC ### Create and select database for usage
--- MAGIC 
+-- MAGIC
 -- MAGIC Now that we're using a unique catalog, we don't need to worry about using a unique database to avoid interfering with others.
--- MAGIC 
+-- MAGIC
 -- MAGIC Let's create a database called **bronze_datasets**.
 
 -- COMMAND ----------
@@ -81,9 +81,9 @@ USE bronze_datasets
 
 -- MAGIC %md
 -- MAGIC ## Upgrade the table
--- MAGIC 
+-- MAGIC
 -- MAGIC Copying the table boils down to a simple **CREATE TABLE AS SELECT** (CTAS) operation, using the three-level namespace to specify the source table. We do not need to specify the destination using three levels due to the **USE CATALOG** and **USE** statements run previously.
--- MAGIC 
+-- MAGIC
 -- MAGIC Note: for large tables this operation can take time as all table data is copied.
 
 -- COMMAND ----------
@@ -104,7 +104,7 @@ SHOW GRANTS ON movies
 
 -- MAGIC %md
 -- MAGIC Currently there are no grants.
--- MAGIC 
+-- MAGIC
 -- MAGIC Now let's examine the grants on the original table. Uncomment the code in the following cell and run it.
 
 -- COMMAND ----------
@@ -118,24 +118,25 @@ SHOW GRANTS ON movies
 
 -- COMMAND ----------
 
+-- DBTITLE 1,Markdown
 -- MAGIC %md
 -- MAGIC ## Grant access to table [optional]
--- MAGIC 
+-- MAGIC
 -- MAGIC With a new table in place, let's allow users in the **analysts** group to read from it.
--- MAGIC 
+-- MAGIC
 -- MAGIC Note that you can only perform this section if you followed along with the *Manage users and groups* exercise and created a Unity Catalog group named **analysts**.
--- MAGIC 
+-- MAGIC
 -- MAGIC Perform this section by uncommenting the code cells and running them in sequence. You will also be prompted to run some queries as a secondary user. To do this:
--- MAGIC 
+-- MAGIC
 -- MAGIC 1. Open a separate private browsing session and log in to Databricks SQL using the user id you created when performing *Manage users and groups*.
--- MAGIC 1. Create a SQL endpoint following the instructions in *Create SQL Endpoint in Unity Catalog*.
+-- MAGIC 1. Create a SQL warehouse following the instructions in *Create SQL warehouse in Unity Catalog*.
 -- MAGIC 1. Prepare to enter queries as instructed below in that environment.
 
 -- COMMAND ----------
 
 -- MAGIC %md
 -- MAGIC ### Grant SELECT privilege on table
--- MAGIC 
+-- MAGIC
 -- MAGIC The first requirement is to grant the **SELECT** privilege on the new table to the **analysts** group.
 
 -- COMMAND ----------
@@ -146,7 +147,7 @@ SHOW GRANTS ON movies
 
 -- MAGIC %md
 -- MAGIC ### Grant USAGE privilege on database
--- MAGIC 
+-- MAGIC
 -- MAGIC **USAGE** privilege is also required on the database.
 
 -- COMMAND ----------
@@ -157,9 +158,9 @@ SHOW GRANTS ON movies
 
 -- MAGIC %md
 -- MAGIC ### Access table as user
--- MAGIC 
+-- MAGIC
 -- MAGIC With appropriate grants in place, attempt to read from the table in the Databricks SQL environment of your secondary user. 
--- MAGIC 
+-- MAGIC
 -- MAGIC Run the following cell to output a query statement that reads from the newly created table. Copy and paste the output into a new query within the SQL environment of your secondary user, and run the query.
 
 -- COMMAND ----------
@@ -170,11 +171,11 @@ SHOW GRANTS ON movies
 -- COMMAND ----------
 
 -- MAGIC %md
--- MAGIC 
+-- MAGIC
 -- MAGIC ## Transform table while upgrading
--- MAGIC 
+-- MAGIC
 -- MAGIC Migrating a table to Unity Catalog is itself a simple operation, but the overall move to Unity Catalog is a big one for any organization. It's a great time to closely consider your tables and schemas and whether they still address your organization's business requirements that may have changed over time.
--- MAGIC 
+-- MAGIC
 -- MAGIC The example we saw earlier takes an exact copy of the source table. Since migrating a table is a simple **CREATE TABLE AS SELECT** operation, we can perform any transformations during the migration that can be performed with **SELECT**. For example, let's expand on the previous example to do the following tranformations:
 -- MAGIC * Assign the name *idx* to the first column
 -- MAGIC * Additionally select only the columns **title**, **year**, **budget** and **rating**

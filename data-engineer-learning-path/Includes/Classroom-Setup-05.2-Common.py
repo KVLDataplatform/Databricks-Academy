@@ -212,7 +212,7 @@ def validate_job_config(self):
     job_config = self.get_job_config()
 
     job = self.client.jobs.get_by_name(job_config.job_name)
-    assert job is not None, f"The job named \"{job_name}\" doesn't exist. Double check the spelling."
+    assert job is not None, f"The job named \"{job_config.job_name}\" doesn't exist. Double check the spelling."
     
     settings = job.get("settings")
     assert settings.get("format") == "MULTI_TASK", f"Expected three tasks, found 1."
@@ -332,4 +332,3 @@ class DataFactory:
 
             dbutils.fs.cp(f"{self.source}/{curr_file}", target_dir)
             self.curr_mo += 1
-

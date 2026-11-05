@@ -1,17 +1,18 @@
 # Databricks notebook source
 # MAGIC %md-sandbox
-# MAGIC 
+# MAGIC
 # MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 # MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 # MAGIC </div>
 
 # COMMAND ----------
 
+# DBTITLE 1,Markdown
 # MAGIC %md
 # MAGIC # Land New Data
-# MAGIC 
-# MAGIC This notebook is provided for the sole purpose of manually triggering new batches of data to be processed by an already configured Delta Live Tables pipeline.
-# MAGIC 
+# MAGIC
+# MAGIC This notebook is provided for the sole purpose of manually triggering new batches of data to be processed by an already configured Lakeflow Spark Declarative Pipeline.
+# MAGIC
 # MAGIC Note that the logic provided is identical to that provided in the first interactive notebook, but does not reset the source or target directories for the pipeline.
 
 # COMMAND ----------
