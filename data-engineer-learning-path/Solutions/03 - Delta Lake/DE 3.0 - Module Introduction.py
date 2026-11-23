@@ -1,16 +1,17 @@
 # Databricks notebook source
 # MAGIC %md-sandbox
-# MAGIC 
+# MAGIC
 # MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 # MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 # MAGIC </div>
 
 # COMMAND ----------
 
+# DBTITLE 1,Markdown
 # MAGIC %md
 # MAGIC ## Manage Data with Delta Lake
 # MAGIC This module is part of the Data Engineer Learning Path by Databricks Academy.
-# MAGIC 
+# MAGIC
 # MAGIC #### Lessons
 # MAGIC Slides: What is Delta Lake <br>
 # MAGIC [DE 3.1 - Schemas and Tables]($./DE 3.1 - Schemas and Tables) <br>
@@ -19,18 +20,18 @@
 # MAGIC [DE 3.4 - Set Up Delta Tables]($./DE 3.4 - Set Up Delta Tables) <br>
 # MAGIC [DE 3.5 - Load Data into Delta Lake]($./DE 3.5 - Load Data into Delta Lake) <br>
 # MAGIC [DE 3.6 - Load Data Lab]($./DE 3.6L - Load Data Lab) <br>
-# MAGIC 
+# MAGIC
 # MAGIC #### Prerequisites
 # MAGIC * Beginner familiarity with cloud computing concepts (virtual machines, object storage, etc.)
-# MAGIC * Ability to perform basic code development tasks using the Databricks Data Engineering & Data Science workspace (create clusters, run code in notebooks, use basic notebook operations, import repos from git, etc)
+# MAGIC * Ability to perform basic code development tasks using the Databricks workspace (create clusters, run code in notebooks, use basic notebook operations, import repos from git, etc)
 # MAGIC * Beginning programming experience with Spark SQL
 # MAGIC   * Extract data from a variety of file formats and data sources
 # MAGIC   * Apply a number of common transformations to clean data
 # MAGIC   * Reshape and manipulate complex data using advanced built-in functions
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC #### Technical Considerations
-# MAGIC * This course runs on DBR 11.3.
+# MAGIC * This course runs on DBR 18.x (tested on 18.x ML, Scala 2.13).
 # MAGIC * This course cannot be delivered on Databricks Community Edition.
 
 # COMMAND ----------

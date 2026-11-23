@@ -149,7 +149,7 @@ def validate_job_v1_config(self):
         actual_cluster_id = tasks[0].get("existing_cluster_id", None)
         
         task_key = tasks[0].get("task_key", None)
-        assert task_key == "Rest", f"Expected the first task to have the name \"Reset\", found \"{task_key}\""
+        assert task_key == "Reset", f"Expected the first task to have the name \"Reset\", found \"{task_key}\""
         
         
     assert notebook_path == job_config.notebook, f"Invalid Notebook Path. Found \"{notebook_path}\", expected \"{job_config.reset_notebook}\" "
@@ -422,5 +422,4 @@ def create_pipeline(self):
         <td><input type="text" value="{config.pipeline_name}" style="width:100%"></td></tr>
 
     </table>""")    
-
 

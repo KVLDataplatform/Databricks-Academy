@@ -1,6 +1,6 @@
 -- Databricks notebook source
 -- MAGIC %md-sandbox
--- MAGIC 
+-- MAGIC
 -- MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 -- MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 -- MAGIC </div>
@@ -9,7 +9,7 @@
 
 -- MAGIC %md
 -- MAGIC # Create and share tables in Unity Catalog
--- MAGIC 
+-- MAGIC
 -- MAGIC In this notebook you will learn how to:
 -- MAGIC * Create schemas and tables
 -- MAGIC * Control access to schemas and tables
@@ -19,11 +19,11 @@
 
 -- MAGIC %md
 -- MAGIC ## Set Up
--- MAGIC 
+-- MAGIC
 -- MAGIC Run the following cells to perform some setup. 
--- MAGIC 
+-- MAGIC
 -- MAGIC In order to avoid conflicts in a shared training environment, this will generate a unique catalog name exclusively for your use. 
--- MAGIC 
+-- MAGIC
 -- MAGIC In your own environment you are free to choose your own catalog names, but be careful about affecting other users & systems in that environment.
 
 -- COMMAND ----------
@@ -34,17 +34,17 @@
 
 -- MAGIC %md
 -- MAGIC ## Unity Catalog three-level namespace
--- MAGIC 
+-- MAGIC
 -- MAGIC Most SQL developers will be familiar with using a two-level namespace to unambiguously address tables within a schema as follows:
--- MAGIC 
+-- MAGIC
 -- MAGIC     SELECT * FROM schema.table;
--- MAGIC 
+-- MAGIC
 -- MAGIC Unity Catalog introduces the concept of a *catalog* that resides above the schema in the object hierarchy. Metastores can host any number of catalogs, which in turn can host any number of schemas. To deal with this additional level, complete table references in Unity Catalog use a three-level namespace. The following statement exemplifies this:
--- MAGIC 
+-- MAGIC
 -- MAGIC     SELECT * FROM catalog.schema.table;
 -- MAGIC     
 -- MAGIC SQL developers will probably also be familiar with the **`USE`** statement to select a default schema, to avoid having to always specify a schema when referencing tables. Unity Catalog augments this with the **`USE CATALOG`** statement, which similarly selects a default catalog.
--- MAGIC 
+-- MAGIC
 -- MAGIC To simplify your experience, we ensured the catalog was created and set it as the default as you can see in the following command.
 
 -- COMMAND ----------
@@ -55,7 +55,7 @@ SELECT current_catalog(), current_database()
 
 -- MAGIC %md
 -- MAGIC ## Create and use a new schema
--- MAGIC 
+-- MAGIC
 -- MAGIC Let's create a new schema exclusively for our use in this exercise, then set this as the default so we can reference tables by name only.
 
 -- COMMAND ----------
@@ -69,13 +69,13 @@ SELECT current_database()
 
 -- MAGIC %md
 -- MAGIC ## Create Delta architecture
--- MAGIC 
+-- MAGIC
 -- MAGIC Let's create and populate a simple collection of schemaas and tables persuant to the Delta architecture:
 -- MAGIC * A silver schema containing patient heart rate data as read from a medical device
 -- MAGIC * A gold schema table that averages heart rate data per patient on a daily basis
--- MAGIC 
+-- MAGIC
 -- MAGIC For now, there will be no bronze table in this simple example.
--- MAGIC 
+-- MAGIC
 -- MAGIC Note that we need ony specify the table name below, since we have set a default catalog and schema above.
 
 -- COMMAND ----------
@@ -116,19 +116,20 @@ SELECT * FROM patient_gold.heartrate_stats;
 
 -- COMMAND ----------
 
+-- DBTITLE 1,Markdown
 -- MAGIC %md
 -- MAGIC ## Grant access to gold schema [optional]
--- MAGIC 
+-- MAGIC
 -- MAGIC Now let's allow users in the **analysts** group to read from the **gold** schema.
--- MAGIC 
+-- MAGIC
 -- MAGIC Note that you can only perform this section if you followed along with the *Manage users and groups* exercise and created a Unity Catalog group named **analysts**.
--- MAGIC 
+-- MAGIC
 -- MAGIC Perform this section by uncommenting the code cells and running them in sequence. 
 -- MAGIC You will also be prompted to run some queries as a secondary user. 
--- MAGIC 
+-- MAGIC
 -- MAGIC To do this:
 -- MAGIC 1. Open a separate private browsing session and log in to Databricks SQL using the user id you created when performing *Manage users and groups*.
--- MAGIC 1. Create a SQL endpoint following the instructions in *Create SQL Endpoint in Unity Catalog*.
+-- MAGIC 1. Create a SQL warehouse following the instructions in *Create SQL warehouse in Unity Catalog*.
 -- MAGIC 1. Prepare to enter queries as instructed below in that environment.
 
 -- COMMAND ----------
@@ -144,9 +145,9 @@ SELECT * FROM patient_gold.heartrate_stats;
 
 -- MAGIC %md
 -- MAGIC ### Query table as user
--- MAGIC 
+-- MAGIC
 -- MAGIC With a **SELECT** grant in place, attempt to query the table in the Databricks SQL environment of your secondary user.
--- MAGIC 
+-- MAGIC
 -- MAGIC Run the following cell to output a query statement that reads from the **gold** table. Copy and paste the output into a new query within the SQL environment of your secondary user, and run the query.
 
 -- COMMAND ----------
@@ -167,15 +168,15 @@ SELECT * FROM patient_gold.heartrate_stats;
 -- COMMAND ----------
 
 -- MAGIC %md
--- MAGIC 
+-- MAGIC
 -- MAGIC Repeat the query in the Databricks SQL environment, and with these two grants in place the operation should succeed.
 
 -- COMMAND ----------
 
 -- MAGIC %md
--- MAGIC 
+-- MAGIC
 -- MAGIC ## Explore grants
--- MAGIC 
+-- MAGIC
 -- MAGIC Let's explore the grants on some of the objects in the Unity Catalog hierarchy, starting with the **gold** table.
 
 -- COMMAND ----------
@@ -199,7 +200,7 @@ SHOW TABLES IN ${DA.catalog_name}.patient_silver;
 
 -- MAGIC %md
 -- MAGIC There are currently no grants on this table; only the owner can access this table.
--- MAGIC 
+-- MAGIC
 -- MAGIC Now let's look at the containing schema.
 
 -- COMMAND ----------
@@ -210,7 +211,7 @@ SHOW TABLES IN ${DA.catalog_name}.patient_silver;
 
 -- MAGIC %md
 -- MAGIC There are currently no grants on this schema. 
--- MAGIC 
+-- MAGIC
 -- MAGIC Now let's examine the catalog.
 
 -- COMMAND ----------

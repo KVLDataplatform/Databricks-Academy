@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md-sandbox
-# MAGIC 
+# MAGIC
 # MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 # MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 # MAGIC </div>
@@ -8,14 +8,14 @@
 # COMMAND ----------
 
 # MAGIC %md # Query Optimization
-# MAGIC 
+# MAGIC
 # MAGIC We'll explore query plans and optimizations for several examples including logical optimizations and exanples with and without predicate pushdown.
-# MAGIC 
+# MAGIC
 # MAGIC ##### Objectives
 # MAGIC 1. Logical optimizations
 # MAGIC 1. Predicate pushdown
 # MAGIC 1. No predicate pushdown
-# MAGIC 
+# MAGIC
 # MAGIC ##### Methods 
 # MAGIC - <a href="https://spark.apache.org/docs/3.1.3/api/python/reference/api/pyspark.sql.DataFrame.explain.html#pyspark.sql.DataFrame.explain" target="_blank">DataFrame</a>: **`explain`**
 
@@ -35,7 +35,7 @@ display(df)
 # COMMAND ----------
 
 # MAGIC %md ### Logical Optimization
-# MAGIC 
+# MAGIC
 # MAGIC **`explain(..)`** prints the query plans, optionally formatted by a given explain mode. Compare the following logical plan & physical plan, noting how Catalyst handled the multiple **`filter`** transformations.
 
 # COMMAND ----------
@@ -97,92 +97,61 @@ stupid_df.explain(True)
 
 # MAGIC %md
 # MAGIC ### Caching
-# MAGIC 
+# MAGIC
 # MAGIC By default the data of a DataFrame is present on a Spark cluster only while it is being processed during a query -- it is not automatically persisted on the cluster afterwards. (Spark is a data processing engine, not a data storage system.) You can explicity request Spark to persist a DataFrame on the cluster by invoking its **`cache`** method.
-# MAGIC 
+# MAGIC
 # MAGIC If you do cache a DataFrame, you should always explictly evict it from cache by invoking **`unpersist`** when you no longer need it.
-# MAGIC 
+# MAGIC
 # MAGIC <img src="https://files.training.databricks.com/images/icon_best_32.png" alt="Best Practice"> Caching a DataFrame can be appropriate if you are certain that you will use the same DataFrame multiple times, as in:
-# MAGIC 
+# MAGIC
 # MAGIC - Exploratory data analysis
 # MAGIC - Machine learning model training
-# MAGIC 
+# MAGIC
 # MAGIC <img src="https://files.training.databricks.com/images/icon_warn_32.png" alt="Warning"> Aside from those use cases, you should **not** cache DataFrames because it is likely that you'll *degrade* the performance of your application.
-# MAGIC 
+# MAGIC
 # MAGIC - Caching consumes cluster resources that could otherwise be used for task execution
 # MAGIC - Caching can prevent Spark from performing query optimizations, as shown in the next example
 
 # COMMAND ----------
 
 # MAGIC %md ### Predicate Pushdown
-# MAGIC 
-# MAGIC Here is example reading from a JDBC source, where Catalyst determines that *predicate pushdown* can take place.
+# MAGIC
+# MAGIC Here is an example reading from a Delta table (the **`events`** table loaded by the setup), where Catalyst determines that *predicate pushdown* can take place.
 
 # COMMAND ----------
-
-# MAGIC %scala
-# MAGIC // Ensure that the driver class is loaded
-# MAGIC Class.forName("org.postgresql.Driver")
-
-# COMMAND ----------
-
-jdbc_url = "jdbc:postgresql://35.89.73.255/training"
-
-# Username and Password w/read-only rights
-conn_properties = {
-    "user" : "training",
-    "password" : "training"
-}
 
 pp_df = (spark
          .read
-         .jdbc(url=jdbc_url,                 # the JDBC URL
-               table="training.people_1m",   # the name of the table
-               column="id",                  # the name of a column of an integral type that will be used for partitioning
-               lowerBound=1,                 # the minimum value of columnName used to decide partition stride
-               upperBound=1000000,           # the maximum value of columnName used to decide partition stride
-               numPartitions=8,              # the number of partitions/connections
-               properties=conn_properties    # the connection properties
-              )
-         .filter(col("gender") == "M")   # Filter the data by gender
+         .table("events")                    # a Delta table backed by Parquet files
+         .filter(col("device") == "macOS")   # Filter the data by device
         )
 
 pp_df.explain(True)
 
 # COMMAND ----------
 
-# MAGIC %md Note the lack of a **Filter** and the presence of a **PushedFilters** in the **Scan**. The filter operation is pushed to the database and only the matching records are sent to Spark. This can greatly reduce the amount of data that Spark needs to ingest.
+# MAGIC %md Look at the **Scan** node in the physical plan: the condition appears under **PushedFilters** (and **DataFilters**). The filter is pushed down into the file scan, so Spark can use Delta and Parquet file statistics to skip files and row groups that cannot contain matching records. This can greatly reduce the amount of data that Spark needs to read.
 
 # COMMAND ----------
 
 # MAGIC %md ### No Predicate Pushdown
-# MAGIC 
+# MAGIC
 # MAGIC In comparison, caching the data before filtering eliminates the possibility for the predicate push down.
 
 # COMMAND ----------
 
-cached_df = (spark
-            .read
-            .jdbc(url=jdbc_url,
-                  table="training.people_1m",
-                  column="id",
-                  lowerBound=1,
-                  upperBound=1000000,
-                  numPartitions=8,
-                  properties=conn_properties
-                 )
-            )
+cached_df = spark.read.table("events")
 
 cached_df.cache()
-filtered_df = cached_df.filter(col("gender") == "M")
+filtered_df = cached_df.filter(col("device") == "macOS")
 
 filtered_df.explain(True)
 
 # COMMAND ----------
 
-# MAGIC %md In addition to the **Scan** (the JDBC read) we saw in the previous example, here we also see the **InMemoryTableScan** followed by a **Filter** in the explain plan.
-# MAGIC 
-# MAGIC This means Spark had to read ALL the data from the database and cache it, and then scan it in cache to find the records matching the filter condition.
+# MAGIC %md This time the plan contains an **InMemoryTableScan** over an **InMemoryRelation**, and the file **Scan** underneath it no longer has the filter in its **PushedFilters**.
+# MAGIC
+# MAGIC This means Spark has to read ALL the data from the table and cache it, and then scan the cache to find the records matching the filter condition.
 
 # COMMAND ----------
 

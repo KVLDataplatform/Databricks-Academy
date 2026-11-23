@@ -1,27 +1,28 @@
 # Databricks notebook source
 # MAGIC %md-sandbox
-# MAGIC 
+# MAGIC
 # MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 # MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 # MAGIC </div>
 
 # COMMAND ----------
 
+# DBTITLE 1,Markdown
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC # Data Engineering with Databricks
-# MAGIC 
+# MAGIC
 # MAGIC The Data Engineering with Databricks (DEWD) course is designed to prepare students for the Databricks Certified Associate Data Engineer certification exam. The content for this course consists of the Associate-level modules of the Data Engineer Learning Path, and can be delivered as an instructor-led training (ILT) or self-paced (SP) course.
-# MAGIC 
+# MAGIC
 # MAGIC ## Course Agenda
 # MAGIC The following modules are part of the Data Engineer Learning Path by Databricks Academy.
 # MAGIC | Folder | Module Name |
 # MAGIC | --- | --- |
-# MAGIC | 01 - Databricks Workspace | Get Started with Databricks Data Science and Data Engineering Workspace |
+# MAGIC | 01 - Databricks Workspace | Get Started with the Databricks workspace |
 # MAGIC | 02 - ETL with Spark | Transform Data with Spark (Spark SQL / PySpark) |
 # MAGIC | 03 - Delta Lake | Manage Data with Delta Lake |
-# MAGIC | 04 - Delta Live Tables | Build Data Pipelines with Delta Live Tables (Spark SQL / PySpark) |
-# MAGIC | 05 - Workflow Jobs | Deploy Workloads with Databricks Workflows |
+# MAGIC | 04 - Delta Live Tables | Build Data Pipelines with Lakeflow Spark Declarative Pipelines (Spark SQL / PySpark) |
+# MAGIC | 05 - Workflow Jobs | Deploy Workloads with Lakeflow Jobs |
 # MAGIC | 06 - Managing Permissions | Manage Data Access for Analytics with Unity Catalog |
 
 # COMMAND ----------
