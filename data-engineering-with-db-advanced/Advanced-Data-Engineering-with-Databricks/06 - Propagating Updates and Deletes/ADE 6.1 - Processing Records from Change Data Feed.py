@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md-sandbox
-# MAGIC 
+# MAGIC
 # MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 # MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 # MAGIC </div>
@@ -9,25 +9,25 @@
 
 # MAGIC %md
 # MAGIC # Processing Records from Delta Change Data Feed
-# MAGIC 
+# MAGIC
 # MAGIC In this notebook, we'll demonstrate an end-to-end of how you can easily propagate changes through a Lakehouse with Delta Lake Change Data Feed (CDF).
-# MAGIC 
+# MAGIC
 # MAGIC For this demo, we'll work with a slightly different dataset representing patient information for medical records. Descriptions of the data at various stages follow.
-# MAGIC 
+# MAGIC
 # MAGIC ### Bronze Table
 # MAGIC Here we store all records as consumed. A row represents:
 # MAGIC 1. A new patient providing data for the first time
 # MAGIC 1. An existing patient confirming that their information is still correct
 # MAGIC 1. An existing patient updating some of their information
-# MAGIC 
+# MAGIC
 # MAGIC The type of action a row represents is not captured.
-# MAGIC 
+# MAGIC
 # MAGIC ### Silver Table
 # MAGIC This is the validated view of our data. Each patient will appear only once in this table. An upsert statement will be used to identify rows that have changed.
-# MAGIC 
+# MAGIC
 # MAGIC ### Gold Table
 # MAGIC For this example, we'll create a simple gold table that captures patients that have a new address.
-# MAGIC 
+# MAGIC
 # MAGIC ## Learning Objectives
 # MAGIC By the end of this lesson, students will be able to:
 # MAGIC - Enable Change Data Feed on a cluster or for a particular table
@@ -39,9 +39,9 @@
 
 # MAGIC %md
 # MAGIC ### Setup
-# MAGIC 
+# MAGIC
 # MAGIC The following code defines some paths, a demo database, and clears out previous runs of the demo.
-# MAGIC 
+# MAGIC
 # MAGIC It also defines another data factory that we'll use to land raw data in our source directory, allowing us to process new records as if they were arriving in production.
 
 # COMMAND ----------
@@ -61,9 +61,9 @@ spark.conf.set("spark.databricks.delta.properties.defaults.enableChangeDataFeed"
 
 # MAGIC %md
 # MAGIC ## Ingest Data with Auto Loader
-# MAGIC 
+# MAGIC
 # MAGIC Here we'll use Auto Loader to ingest data as it arrives.
-# MAGIC 
+# MAGIC
 # MAGIC The steps below include:
 # MAGIC * Declaring the target table
 # MAGIC * Creating & starting the stream
@@ -83,7 +83,7 @@ spark.conf.set("spark.databricks.delta.properties.defaults.enableChangeDataFeed"
 # COMMAND ----------
 
 # MAGIC %md Create and start the stream.
-# MAGIC 
+# MAGIC
 # MAGIC For this example, we will:
 # MAGIC * Use continuous processing as opposed to trigger-once or trigger-available-now
 # MAGIC * Specify the schema as opposed to inferring it
@@ -111,9 +111,9 @@ DA.block_until_stream_is_ready(bronze_query)
 
 # MAGIC %md
 # MAGIC Expand the stream monitor above to see the progress of your stream. 
-# MAGIC 
+# MAGIC
 # MAGIC No files should have been ingested.
-# MAGIC 
+# MAGIC
 # MAGIC Use the cell below to land a batch of data; you should see these records processed as a single batch.
 
 # COMMAND ----------
@@ -124,7 +124,7 @@ DA.cdc_stream.load()
 
 # MAGIC %md
 # MAGIC ## Create a Target Table
-# MAGIC 
+# MAGIC
 # MAGIC Here we use **`DEEP CLONE`** to move read-only data from PROD to our DEV environment (where we have full write/delete access).
 
 # COMMAND ----------
@@ -138,9 +138,9 @@ DA.cdc_stream.load()
 
 # MAGIC %md
 # MAGIC Tables that were not created with CDF enabled will not have it turned on by default, but can be altered to capture changes with the following syntax.
-# MAGIC 
+# MAGIC
 # MAGIC Note that editing properties will version a table. 
-# MAGIC 
+# MAGIC
 # MAGIC Note: CDC data is **NOT** captured during **`CLONE`** operations.
 
 # COMMAND ----------
@@ -158,16 +158,17 @@ DA.cdc_stream.load()
 
 # MAGIC %md
 # MAGIC ## Upsert Data with Delta Lake
-# MAGIC 
+# MAGIC
 # MAGIC Here we define upsert logic into the silver table using a streaming read against the bronze table, matching on our unique identifier **`mrn`**.
-# MAGIC 
+# MAGIC
 # MAGIC We specify an additional conditional check to ensure that a field in the data has changed before inserting the new record.
 
 # COMMAND ----------
 
+# DBTITLE 1,Upsert to Delta
 def upsert_to_delta(microBatchDF, batchId):
     microBatchDF.createOrReplaceTempView("updates")
-    microBatchDF._jdf.sparkSession().sql("""
+    microBatchDF.sparkSession.sql("""
         MERGE INTO silver s
         USING updates u
         ON s.mrn = u.mrn
@@ -223,11 +224,11 @@ display(files)
 
 # MAGIC %md
 # MAGIC ## Read the Change Data Feed
-# MAGIC 
+# MAGIC
 # MAGIC To pick up the recorded CDC data, we add two options:
 # MAGIC - **`readChangeData`**
 # MAGIC - **`startingVersion`** (can use **`startingTimestamp`** instead)
-# MAGIC 
+# MAGIC
 # MAGIC Here we'll do a streaming display of just those patients in LA. Note that users with changes have two records present.
 
 # COMMAND ----------
@@ -257,12 +258,12 @@ DA.cdc_stream.load()
 # MAGIC %md
 # MAGIC ## Gold Table
 # MAGIC Our gold table will capture all of those patients that have a new address, and record this information alongside 2 timestamps: the time at which this change was made in our source system (currently labeled **`updated`**) and the time this was processed into our silver table (captured by the **`_commit_timestamp`** generated CDC field).
-# MAGIC 
+# MAGIC
 # MAGIC Within silver table CDC records:
 # MAGIC - check for max **`_commit_version`** for each record
 # MAGIC - if new version and address change, insert to gold table
 # MAGIC - record **`updated_timestamp`** and **`processed_timestamp`**
-# MAGIC 
+# MAGIC
 # MAGIC #### Gold Table Schema
 # MAGIC | field | type |
 # MAGIC | --- | --- |
@@ -298,9 +299,9 @@ DA.cdc_stream.load()
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC Note that we are using a table that has updates written to it as a streaming source! 
-# MAGIC 
+# MAGIC
 # MAGIC This is a **huge** value add, and something that historically has required extensive workarounds to process correctly.
 
 # COMMAND ----------
@@ -315,12 +316,12 @@ silver_stream_df = (spark.readStream
 
 # MAGIC %md
 # MAGIC Our **`_change_type`** field lets us easily distinguish valid and invalid records.
-# MAGIC 
+# MAGIC
 # MAGIC New valid rows will have the **`update_postimage`** or **`insert`** label.
 # MAGIC New invalid rows will have the **`update_preimage`** or **`delete`** label. 
-# MAGIC 
+# MAGIC
 # MAGIC (**NOTE**: We'll demonstrate logic for propagating deletes a little later)
-# MAGIC 
+# MAGIC
 # MAGIC In the cell below, we'll define two queries against our streaming source to perform a stream-stream merge on our data.
 
 # COMMAND ----------
@@ -350,11 +351,11 @@ old_df = (silver_stream_df
 
 # MAGIC %md
 # MAGIC Assuming that we have properly deduplicated our data to ensure that only a single record for our **`mrn`** can be processed to our silver table, **`mrn`** and **`_commit_timestamp`** (aliased to **`processed_timestamp`** here) serve as a unique composite key.
-# MAGIC 
+# MAGIC
 # MAGIC Our join will allow us to match up the current and previous states of our data to track all changes.
-# MAGIC 
+# MAGIC
 # MAGIC This table could drive further downstream processes, such as triggering confirmation emails or automatic mailings for patients with updated addresses.
-# MAGIC 
+# MAGIC
 # MAGIC Our CDC data arrives as a stream, so only newly changed data at the silver level will be processed. Therefore, we can write to our gold table in append mode and maintain the grain of our data.
 
 # COMMAND ----------
@@ -385,7 +386,7 @@ DA.block_until_stream_is_ready(query)
 
 # MAGIC %md
 # MAGIC If we land a new raw file and wait a few seconds, we can see that all of our changes have propagated through our pipeline.
-# MAGIC 
+# MAGIC
 # MAGIC (This assumes you're using **`processingTime`** instead of trigger-once or trigger-available-now processing. Scroll up to the gold table streaming write to wait for a new peak in the processing rate to know your data has arrived.)
 
 # COMMAND ----------
@@ -417,9 +418,9 @@ for stream in spark.streams.active:
 
 # MAGIC %md
 # MAGIC ## Propagating Deletes
-# MAGIC 
+# MAGIC
 # MAGIC While some use cases may require processing deletes alongside updates and inserts, the most important delete requests are those that allow companies to maintain compliance with privacy regulations such as GDPR and CCPA. Most companies have stated SLAs around how long these requests will take to process, but for various reasons, these are often handled in pipelines separate from their core ETL.
-# MAGIC 
+# MAGIC
 # MAGIC Here, we should a single user being deleted from our **`silver`** table.
 
 # COMMAND ----------
@@ -463,7 +464,7 @@ for stream in spark.streams.active:
 # MAGIC   FROM table_changes("silver", 0)
 # MAGIC   WHERE _change_type='delete'
 # MAGIC )
-# MAGIC 
+# MAGIC
 # MAGIC MERGE INTO gold g
 # MAGIC USING deletes d
 # MAGIC ON d.mrn=g.mrn

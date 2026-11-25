@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md-sandbox
-# MAGIC 
+# MAGIC
 # MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 # MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 # MAGIC </div>
@@ -9,13 +9,13 @@
 
 # MAGIC %md
 # MAGIC # Propagating Deletes with Change Data Feed
-# MAGIC 
+# MAGIC
 # MAGIC While the PII for users has been pseudonymized, generalized, and redacted through several approaches, we have not yet addressed how deletes can be effectively and efficiently handled in the Lakehouse.
-# MAGIC 
+# MAGIC
 # MAGIC In this notebook, we'll combine Structured Streaming, Delta Lake, and Change Data Feed to demonstrate processing delete requests incrementally and propagating deletes through the Lakehouse.
-# MAGIC 
+# MAGIC
 # MAGIC <img src="https://files.training.databricks.com/images/ade/ADE_arch_users.png" width="60%" />
-# MAGIC 
+# MAGIC
 # MAGIC ## Learning Objectives
 # MAGIC By the end of this lesson, students will be able to:
 # MAGIC - Commit arbitrary messages to the Delta log to record important events
@@ -37,23 +37,23 @@
 
 # MAGIC %md
 # MAGIC ## Requirements for Fulfilling Requests to Be Forgotten
-# MAGIC 
+# MAGIC
 # MAGIC The **`user_lookup`** table contains the link between the **`alt_id`** used as the primary key for the **`users`** table and natural keys found elsewhere in the lakehouse.
-# MAGIC 
+# MAGIC
 # MAGIC Different industries will have different requirements for data deletion and data retention. Here, we'll assume the following:
 # MAGIC 1. All PII in the **`users`** table must be deleted
 # MAGIC 1. Links between pseudonymized keys and natural keys should be forgotten
 # MAGIC 1. A policy to remove historic data containing PII from raw data sources and logs should be enacted
-# MAGIC 
+# MAGIC
 # MAGIC This notebook will focus on the first two of these requirements; the third will be handled in the following lesson.
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## Processing Right to Be Forgotten Requests
-# MAGIC 
+# MAGIC
 # MAGIC While it is possible to process deletes at the same time as appends and updates, the fines around right to be forgotten requests may warrant a separate process.
-# MAGIC 
+# MAGIC
 # MAGIC Below, logic for setting up a simple table to process delete requests through the users data is displayed. A simple deadline of 30 days after the request is inserted, allowing internal automated audits to leverage this table to ensure compliance.
 
 # COMMAND ----------
@@ -102,9 +102,9 @@ DA.block_until_stream_is_ready(name = "requests")
 
 # MAGIC %md
 # MAGIC ## Adding Commit Messages
-# MAGIC 
+# MAGIC
 # MAGIC Delta Lake supports arbitrary commit messages that will be recorded to the Delta transaction log and viewable in the table history. This can help with later auditing.
-# MAGIC 
+# MAGIC
 # MAGIC Setting this with SQL will create a global commit message that will be used for all subsequent operations in our notebook.
 
 # COMMAND ----------
@@ -116,7 +116,7 @@ DA.block_until_stream_is_ready(name = "requests")
 
 # MAGIC %md
 # MAGIC With DataFrames, commit messages can also be specified as part of the write options using the **`userMetadata`** option.
-# MAGIC 
+# MAGIC
 # MAGIC Here, we'll indicate that we're manually processing these requests in a notebook, rather than using an automated job.
 
 # COMMAND ----------
@@ -144,11 +144,11 @@ query.awaitTermination()
 
 # MAGIC %md
 # MAGIC ## Processing Delete Requests
-# MAGIC 
+# MAGIC
 # MAGIC The **`delete_requests`** table will be used to track users' requests to be forgotten. Note that it is possible to process delete requests alongside inserts and updates to existing data as part of a normal **`MERGE`** statement.
-# MAGIC 
+# MAGIC
 # MAGIC Because PII exists in several places through the current lakehouse, tracking requests and processing them asynchronously may provide better performance for production jobs with low latency SLAs. The approach modeled here also indicates the time at which the delete was requested and the deadline, and provides a field to indicate the current processing status of the request.
-# MAGIC 
+# MAGIC
 # MAGIC Review the **`delete_requests`** table below.
 
 # COMMAND ----------
@@ -160,11 +160,11 @@ query.awaitTermination()
 
 # MAGIC %md
 # MAGIC ## Enable Change Data Feed to Power Incremental Deletes
-# MAGIC 
+# MAGIC
 # MAGIC We'll be using Change Data Feed to power deletes to many tables from a single source.
-# MAGIC 
+# MAGIC
 # MAGIC Because the **`user_lookup`** table links identifying information between different pipelines, we'll make this the point where deletes propagate from.
-# MAGIC 
+# MAGIC
 # MAGIC Start by altering the table properties to enable Change Data Feed.
 
 # COMMAND ----------
@@ -187,7 +187,7 @@ query.awaitTermination()
 
 # MAGIC %md
 # MAGIC Note that because Change Data Feed was enabled after initial table creation, we will only be able to review change data starting with the current table version.
-# MAGIC 
+# MAGIC
 # MAGIC The cell below will capture this value for use in the next section.
 
 # COMMAND ----------
@@ -200,7 +200,7 @@ print(start_version)
 # MAGIC %md
 # MAGIC ## Committing Deletes
 # MAGIC When working with static data, committing deletes is simple. 
-# MAGIC 
+# MAGIC
 # MAGIC The following logic modifies the **`user_lookup`** table by rewriting all data files containing records affected by the **`DELETE`** statement. Recall that with Delta Lake, deleting data will create new data files rather than deleting existing data files.
 
 # COMMAND ----------
@@ -214,7 +214,7 @@ print(start_version)
 # MAGIC %md
 # MAGIC ## Propagate Deletes
 # MAGIC While the lakehouse architecture implemented here typically uses the **`user_lookup`** as a static table in joins with incremental data, the Change Data Feed can be separately leveraged as an incremental record of data changes.
-# MAGIC 
+# MAGIC
 # MAGIC The code below configures as incremental read of all changes committed to the **`user_lookup`** table.
 
 # COMMAND ----------
@@ -229,20 +229,21 @@ deleteDF = (spark.readStream
 
 # MAGIC %md
 # MAGIC The relationships between our natural keys (**`user_id`**, **`device_id`**, and **`mac_address`**) are stored in our **`user_lookup`**. These allow us to link a user's data between various pipelines/sources. The Change Data Feed from this table will maintain all these fields, allowing successful identification of records to be deleted or modified in downstream tables.
-# MAGIC 
+# MAGIC
 # MAGIC The function below demonstrates committing deletes to two tables using different keys and syntax. Note that in this case, the **`MERGE`** syntax demonstrated is not necessary to process the deletes to the **`users`** table; this code block does demonstrate the basic syntax that could be expanded if inserts and updates were to be processed in the same code block as deletes.
-# MAGIC 
+# MAGIC
 # MAGIC Assuming successful completion of these two table modifications, an update will be process back to the **`delete_requests`** table. Note that we're leveraging data that has been successfully deleted from the **`user_lookup`** table to update a value in the **`delete_requests`** table.
 
 # COMMAND ----------
 
+# DBTITLE 1,Process deletes
 def process_deletes(microBatchDF, batchId):
     
     (microBatchDF
         .filter("_change_type = 'delete'")
         .createOrReplaceTempView("deletes"))
     
-    microBatchDF._jdf.sparkSession().sql("""
+    microBatchDF.sparkSession.sql("""
         MERGE INTO users u
         USING deletes d
         ON u.alt_id = d.alt_id
@@ -250,12 +251,12 @@ def process_deletes(microBatchDF, batchId):
             THEN DELETE
     """)
 
-    microBatchDF._jdf.sparkSession().sql("""
+    microBatchDF.sparkSession.sql("""
         DELETE FROM user_bins
         WHERE user_id IN (SELECT user_id FROM deletes)
     """)
     
-    microBatchDF._jdf.sparkSession().sql("""
+    microBatchDF.sparkSession.sql("""
         MERGE INTO delete_requests dr
         USING deletes d
         ON d.alt_id = dr.alt_id
@@ -267,7 +268,7 @@ def process_deletes(microBatchDF, batchId):
 
 # MAGIC %md
 # MAGIC Recall that this workload is being driven by incremental changes to the **`user_lookup`** table (tracked through the Change Data Feed).
-# MAGIC 
+# MAGIC
 # MAGIC Executing the following cell will propagate deletes to a single table to multiple tables throughout the lakehouse.
 
 # COMMAND ----------
@@ -296,7 +297,7 @@ query.awaitTermination()
 
 # MAGIC %md
 # MAGIC Note that our commit message will be in the far right column of our history, under the column **`userMetadata`**.
-# MAGIC 
+# MAGIC
 # MAGIC For the **`users`** table, the operation field in the history will indicate a merge because of the chosen syntax, even though only deletes were committed. The number of deleted rows can be reviewed in the **`operationMetrics`**.
 
 # COMMAND ----------
@@ -328,11 +329,11 @@ query.awaitTermination()
 
 # MAGIC %md
 # MAGIC ## Are Deletes Fully Committed?
-# MAGIC 
+# MAGIC
 # MAGIC Not exactly.
-# MAGIC 
+# MAGIC
 # MAGIC Because of how Delta Lake's history and CDF features are implemented, deleted values are still present in older versions of the data.
-# MAGIC 
+# MAGIC
 # MAGIC The query below shows the records deleted in v1 of the **`user_bins`** table.
 
 # COMMAND ----------

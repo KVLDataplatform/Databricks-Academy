@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md-sandbox
-# MAGIC 
+# MAGIC
 # MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 # MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 # MAGIC </div>
@@ -9,11 +9,11 @@
 
 # MAGIC %md
 # MAGIC ## Promoting to Silver
-# MAGIC 
+# MAGIC
 # MAGIC Here we'll pull together the concepts of streaming from Delta Tables, deduplication, and quality enforcement to finalize our approach to our silver table.
-# MAGIC 
+# MAGIC
 # MAGIC <img src="https://files.training.databricks.com/images/ade/ADE_arch_heartrate_silver.png" width="60%" />
-# MAGIC 
+# MAGIC
 # MAGIC ## Learning Objectives
 # MAGIC By the end of this lesson, students will be able to:
 # MAGIC - Apply table constraints to Delta Lake tables
@@ -99,6 +99,7 @@ streaming_df = (spark.readStream
 
 # COMMAND ----------
 
+# DBTITLE 1,Upsert class
 class Upsert:
     def __init__(self, sql_query, update_temp="stream_updates"):
         self.sql_query = sql_query
@@ -106,13 +107,13 @@ class Upsert:
         
     def upsert_to_delta(self, micro_batch_df, batch):
         micro_batch_df.createOrReplaceTempView(self.update_temp)
-        micro_batch_df._jdf.sparkSession().sql(self.sql_query)
+        micro_batch_df.sparkSession.sql(self.sql_query)
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC Use the cell below to define the upsert query to instantiate our class. 
-# MAGIC 
+# MAGIC
 # MAGIC Alternatetively, <a href="https://docs.databricks.com/delta/delta-update.html#upsert-into-a-table-using-merge&language-python" target="_blank">consult the documentation</a> and try implementing this using the **`DeltaTable`** Python class.
 
 # COMMAND ----------
@@ -164,7 +165,7 @@ print(f"New Total: {new_total:,}")
 
 # MAGIC %md
 # MAGIC Now land a new batch of data and propagate changes through bronze into the silver table.
-# MAGIC 
+# MAGIC
 # MAGIC <img src="https://files.training.databricks.com/images/icon_note_32.png"> The following two methods were recreated for us from previous lessons
 
 # COMMAND ----------

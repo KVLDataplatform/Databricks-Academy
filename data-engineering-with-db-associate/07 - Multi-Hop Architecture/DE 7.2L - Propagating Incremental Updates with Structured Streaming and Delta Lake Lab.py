@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md-sandbox
-# MAGIC 
+# MAGIC
 # MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 # MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 # MAGIC </div>
@@ -8,10 +8,10 @@
 # COMMAND ----------
 
 # MAGIC %md <i18n value="0e458ce0-d210-41e2-8d96-836d7355de16"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC # Propagating Incremental Updates with Structured Streaming and Delta Lake
-# MAGIC 
+# MAGIC
 # MAGIC ## Learning Objectives
 # MAGIC By the end of this lab, you should be able to:
 # MAGIC * Apply your knowledge of structured streaming and Auto Loader to implement a simple multi-hop architecture
@@ -19,8 +19,8 @@
 # COMMAND ----------
 
 # MAGIC %md <i18n value="8cf2e657-3b59-4f53-a86e-6acabcd8aa16"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC ## Setup
 # MAGIC Run the following script to setup necessary variables and clear out past runs of this notebook. Note that re-executing this cell will allow you to start the lab over.
 
@@ -31,13 +31,13 @@
 # COMMAND ----------
 
 # MAGIC %md <i18n value="4d9563b5-a6dc-4106-a5bf-168d374a968e"/>
-# MAGIC 
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
+# MAGIC
 # MAGIC ## Ingest data
-# MAGIC 
+# MAGIC
 # MAGIC This lab uses a collection of customer-related CSV data from the **retail-org/customers** dataset.
-# MAGIC 
+# MAGIC
 # MAGIC Read this data using Auto Loader using its schema inference (use **`customers_checkpoint_path`** to store the schema info). Stream the raw data to a Delta table called **`bronze`**.
 
 # COMMAND ----------
@@ -57,12 +57,18 @@ query = (spark
 
 # COMMAND ----------
 
-DA.block_until_stream_is_ready(query)
+# DBTITLE 1,Wait for bronze stream
+# DA.block_until_stream_is_ready requires the classic StreamingQuery type, not Spark Connect's.
+# Wait for the stream to process its initial batches using the standard API (DBR 18+).
+import time as _time
+while len(query.recentProgress) < 2:
+    _time.sleep(5)
+print(f"The stream has processed {len(query.recentProgress)} batch(es)")
 
 # COMMAND ----------
 
 # MAGIC %md <i18n value="8b05f1fa-9046-4eba-8698-004b6c10fb79"/>
-# MAGIC 
+# MAGIC
 # MAGIC Run the cell below to check your work.
 
 # COMMAND ----------
@@ -74,29 +80,32 @@ assert spark.table("bronze").dtypes ==  [('customer_id', 'string'), ('tax_id', '
 # COMMAND ----------
 
 # MAGIC %md <i18n value="f999d572-86c1-4c0a-afbe-dad08cc7eb5a"/>
-# MAGIC 
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
+# MAGIC
 # MAGIC Let's create a streaming temporary view into the bronze table, so that we can perform transforms using SQL.
 
 # COMMAND ----------
 
+# DBTITLE 1,Bronze streaming view
 (spark
   .readStream
   .table("bronze")
+  .select("*", "_metadata")   # expose the hidden file metadata column to SQL
   .createOrReplaceTempView("bronze_temp"))
 
 # COMMAND ----------
 
+# DBTITLE 1,Markdown
 # MAGIC %md <i18n value="14a123fc-6cae-4780-b2fb-08ffa1da4989"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC ## Clean and enhance data
-# MAGIC 
+# MAGIC
 # MAGIC Using CTAS syntax, define a new streaming view called **`bronze_enhanced_temp`** that does the following:
 # MAGIC * Skips records with a null **`postcode`** (set to zero)
 # MAGIC * Inserts a column called **`receipt_time`** containing a current timestamp
-# MAGIC * Inserts a column called **`source_file`** containing the input filename
+# MAGIC * Inserts a column called **`source_file`** containing the input filename (use **`_metadata.file_path`**, and exclude the helper column with **`* EXCEPT (_metadata)`**)
 
 # COMMAND ----------
 
@@ -109,7 +118,7 @@ assert spark.table("bronze").dtypes ==  [('customer_id', 'string'), ('tax_id', '
 # COMMAND ----------
 
 # MAGIC %md <i18n value="4369381f-b2e0-4d88-9ccd-bcd6ff100f98"/>
-# MAGIC 
+# MAGIC
 # MAGIC Run the cell below to check your work.
 
 # COMMAND ----------
@@ -122,10 +131,10 @@ assert spark.table("bronze_enhanced_temp").isStreaming, "Not a streaming table"
 # COMMAND ----------
 
 # MAGIC %md <i18n value="ff38de01-61d2-4ffc-a5ca-aac815d8fb1e"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC ## Silver table
-# MAGIC 
+# MAGIC
 # MAGIC Stream the data from **`bronze_enhanced_temp`** to a table called **`silver`**.
 
 # COMMAND ----------
@@ -139,12 +148,17 @@ query = (spark.table("bronze_enhanced_temp")
 
 # COMMAND ----------
 
-DA.block_until_stream_is_ready(query)
+# DBTITLE 1,Wait for silver stream
+# DA.block_until_stream_is_ready requires the classic StreamingQuery type, not Spark Connect's.
+import time as _time
+while len(query.recentProgress) < 2:
+    _time.sleep(5)
+print(f"The stream has processed {len(query.recentProgress)} batch(es)")
 
 # COMMAND ----------
 
 # MAGIC %md <i18n value="41b4d01f-c855-40da-86a9-6d36de39d48a"/>
-# MAGIC 
+# MAGIC
 # MAGIC Run the cell below to check your work.
 
 # COMMAND ----------
@@ -157,9 +171,9 @@ assert spark.table("silver").filter("postcode <= 0").count() == 0, "Null postcod
 # COMMAND ----------
 
 # MAGIC %md <i18n value="e8fef108-ec3e-4404-9307-84cc3b593f99"/>
-# MAGIC 
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
+# MAGIC
 # MAGIC Let's create a streaming temporary view into the silver table, so that we can perform business-level aggregation using SQL.
 
 # COMMAND ----------
@@ -172,11 +186,11 @@ assert spark.table("silver").filter("postcode <= 0").count() == 0, "Null postcod
 # COMMAND ----------
 
 # MAGIC %md <i18n value="e37aaafc-d774-4635-9ca4-163446d98ac7"/>
-# MAGIC 
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
+# MAGIC
 # MAGIC ## Gold tables
-# MAGIC 
+# MAGIC
 # MAGIC Using CTAS syntax, define a new streaming view called **`customer_count_temp`** that counts customers per state in a column named **`customer_count`**.
 
 # COMMAND ----------
@@ -190,7 +204,7 @@ assert spark.table("silver").filter("postcode <= 0").count() == 0, "Null postcod
 # COMMAND ----------
 
 # MAGIC %md <i18n value="7b1502ab-f64b-4491-8104-fa46521c4dc0"/>
-# MAGIC 
+# MAGIC
 # MAGIC Run the cell below to check your work.
 
 # COMMAND ----------
@@ -202,8 +216,8 @@ assert spark.table("customer_count_temp").dtypes ==  [('state', 'string'), ('cus
 # COMMAND ----------
 
 # MAGIC %md <i18n value="413fe655-e9c0-42ca-8bd9-e7f45c98d2ad"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC Finally, stream the data from the **`customer_count_temp`** view to a Delta table called **`gold_customer_count_by_state`**.
 
 # COMMAND ----------
@@ -219,12 +233,17 @@ query = (spark
 
 # COMMAND ----------
 
-DA.block_until_stream_is_ready(query)
+# DBTITLE 1,Wait for gold stream
+# DA.block_until_stream_is_ready requires the classic StreamingQuery type, not Spark Connect's.
+import time as _time
+while len(query.recentProgress) < 2:
+    _time.sleep(5)
+print(f"The stream has processed {len(query.recentProgress)} batch(es)")
 
 # COMMAND ----------
 
 # MAGIC %md <i18n value="a4073245-d0e0-41a2-b107-16357064b596"/>
-# MAGIC 
+# MAGIC
 # MAGIC Run the cell below to check your work.
 
 # COMMAND ----------
@@ -237,11 +256,11 @@ assert spark.table("gold_customer_count_by_state").count() == 51, "Incorrect num
 # COMMAND ----------
 
 # MAGIC %md <i18n value="28b96faa-5b44-4e66-bc49-58ad9fa80f2e"/>
-# MAGIC 
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
+# MAGIC
 # MAGIC ## Query the results
-# MAGIC 
+# MAGIC
 # MAGIC Query the **`gold_customer_count_by_state`** table (this will not be a streaming query). Plot the results as a bar graph and also using the map plot.
 
 # COMMAND ----------
@@ -252,10 +271,10 @@ assert spark.table("gold_customer_count_by_state").count() == 51, "Incorrect num
 # COMMAND ----------
 
 # MAGIC %md <i18n value="c6bbef1b-0139-41c5-889b-f1cf1a56f907"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC ## Wrapping Up
-# MAGIC 
+# MAGIC
 # MAGIC Run the following cell to remove the database and all data associated with this lab.
 
 # COMMAND ----------
@@ -265,8 +284,8 @@ DA.cleanup()
 # COMMAND ----------
 
 # MAGIC %md <i18n value="971fb9e2-1315-47d1-bb18-ae0835b5bcde"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC By completing this lab, you should now feel comfortable:
 # MAGIC * Using PySpark to configure Auto Loader for incremental data ingestion
 # MAGIC * Using Spark SQL to aggregate streaming data

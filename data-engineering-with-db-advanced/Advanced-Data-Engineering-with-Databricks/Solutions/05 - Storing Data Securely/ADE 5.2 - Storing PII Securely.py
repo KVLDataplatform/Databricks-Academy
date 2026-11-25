@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md-sandbox
-# MAGIC 
+# MAGIC
 # MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 # MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 # MAGIC </div>
@@ -9,13 +9,13 @@
 
 # MAGIC %md
 # MAGIC # Storing PII Securely
-# MAGIC 
+# MAGIC
 # MAGIC Adding a pseudonymized key to incremental workloads is as simple as adding a transformation.
-# MAGIC 
+# MAGIC
 # MAGIC In this notebook, we'll examine design patterns for ensuring PII is stored securely and updated accurately. We'll also demonstrate an approach for processing delete requests to make sure these are captured appropriately.
-# MAGIC 
+# MAGIC
 # MAGIC <img src="https://files.training.databricks.com/images/ade/ADE_arch_users.png" width="60%" />
-# MAGIC 
+# MAGIC
 # MAGIC ## Learning Objectives
 # MAGIC By the end of this notebook, students will be able to:
 # MAGIC - Apply incremental transformations to store data with pseudonymized keys
@@ -48,11 +48,11 @@
 # MAGIC %md
 # MAGIC ## ELT with Pseudonymization
 # MAGIC The data in the **`user_info`** topic contains complete row outputs from a Change Data Capture feed.
-# MAGIC 
+# MAGIC
 # MAGIC There are three values for **`update_type`** present in the data: **`new`**, **`update`**, and **`delete`**.
-# MAGIC 
+# MAGIC
 # MAGIC The **`users`** table will be implemented as a Type 1 table, so only the most recent value matters
-# MAGIC 
+# MAGIC
 # MAGIC Run the cell below to visually confirm that both **`new`** and **`update`** records contain all the fields we need for our **`users`** table.
 
 # COMMAND ----------
@@ -85,13 +85,13 @@ display(users_df)
 
 # MAGIC %md
 # MAGIC ## Deduplication with Windowed Ranking
-# MAGIC 
+# MAGIC
 # MAGIC We've previously explored some ways to remove duplicate records:
 # MAGIC - Using Delta Lake's **`MERGE`** syntax, we can update or insert records based on keys, matching new records with previously loaded data
 # MAGIC - **`dropDuplicates`** will remove exact duplicates within a table or incremental microbatch
-# MAGIC 
+# MAGIC
 # MAGIC Now we have multiple records for a given primary key BUT these records are not identical. **`dropDuplicates`** will not work to remove these records, and we'll get an error from our merge statement if we have the same key present multiple times.
-# MAGIC 
+# MAGIC
 # MAGIC Below, a third approach for removing duplicates is shown below using the <a href="http://spark.apache.org/docs/latest/api/python/reference/api/pyspark.sql.Window.html?highlight=window#pyspark.sql.Window" target="_blank">PySpark Window class</a>.
 
 # COMMAND ----------
@@ -109,10 +109,10 @@ display(ranked_df)
 
 # MAGIC %md
 # MAGIC As desired, we get only the newest (**`rank == 1`**) entry for each unique **`user_id`**.
-# MAGIC 
+# MAGIC
 # MAGIC Unfortunately, if we try to apply this to a streaming read of our data, we'll learn that
 # MAGIC > Non-time-based windows are not supported on streaming DataFrames
-# MAGIC 
+# MAGIC
 # MAGIC Uncomment and run the following cell to see this error in action:
 
 # COMMAND ----------
@@ -137,13 +137,13 @@ display(ranked_df)
 
 # MAGIC %md
 # MAGIC ## Implementing Streaming Ranked De-duplication
-# MAGIC 
+# MAGIC
 # MAGIC As we saw previously, when apply **`MERGE`** logic with a Structured Streaming job, we need to use **`foreachBatch`** logic.
-# MAGIC 
+# MAGIC
 # MAGIC Recall that while we're inside a streaming microbatch, we interact with our data using batch syntax.
-# MAGIC 
+# MAGIC
 # MAGIC This means that if we can apply our ranked **`Window`** logic within our **`foreachBatch`** function, we can avoid the restriction throwing our error.
-# MAGIC 
+# MAGIC
 # MAGIC The code below sets up all the incremental logic needed to load in the data in the correct schema from the bronze table. This includes:
 # MAGIC - Filter for the **`user_info`** topic
 # MAGIC - Dropping identical records within the batch
@@ -173,11 +173,12 @@ unpacked_df = (spark.readStream
 # MAGIC - Match entries on our **`alt_id`**
 # MAGIC - Update all when matched **if** the new record has is newer than the previous entry
 # MAGIC - When not matched, insert all
-# MAGIC 
+# MAGIC
 # MAGIC As before, use **`foreachBatch`** to apply merge operations in Structured Streaming.
 
 # COMMAND ----------
 
+# DBTITLE 1,Batch rank upsert
 from pyspark.sql.window import Window
 
 window = Window.partitionBy("alt_id").orderBy(F.col("updated").desc())
@@ -190,7 +191,7 @@ def batch_rank_upsert(microBatchDF, batchId):
                  .drop("rank")
                  .createOrReplaceTempView("ranked_updates"))
     
-    microBatchDF._jdf.sparkSession().sql("""
+    microBatchDF.sparkSession.sql("""
         MERGE INTO users u
         USING ranked_updates r
         ON u.alt_id=r.alt_id
@@ -204,7 +205,7 @@ def batch_rank_upsert(microBatchDF, batchId):
 
 # MAGIC %md
 # MAGIC Now we can apply this function to our data. 
-# MAGIC 
+# MAGIC
 # MAGIC Here, we'll run a trigger-available-now batch to process all records.
 
 # COMMAND ----------

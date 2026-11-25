@@ -221,6 +221,7 @@ def create_job_v1(self):
 
 # COMMAND ----------
 
+# DBTITLE 1,Validate job config
 @DBAcademyHelper.monkey_patch
 def validate_job_v1_config(self):
     "Provided by DBAcademy, this function validates the configuration of the job"
@@ -247,7 +248,7 @@ def validate_job_v1_config(self):
         actual_cluster_id = tasks[0].get("existing_cluster_id", None)
         
         task_key = tasks[0].get("task_key", None)
-        assert task_key == "Rest", f"Expected the first task to have the name \"Reset\", found \"{task_key}\""
+        assert task_key == "Reset", f"Expected the first task to have the name \"Reset\", found \"{task_key}\""
         
         
     assert notebook_path == reset_notebook, f"Invalid Notebook Path. Found \"{notebook_path}\", expected \"{reset_notebook}\" "
@@ -404,4 +405,3 @@ DA.paths.storage_location = f"{DA.paths.working_dir}/storage"
 DA.data_factory = DltDataFactory(DA.paths.stream_path)
 
 DA.conclude_setup()
-

@@ -314,6 +314,7 @@ DA.start_job = _start_job
 
 # COMMAND ----------
 
+# DBTITLE 1,create_date_lookup
 def create_date_lookup():
     import time
 
@@ -322,7 +323,7 @@ def create_date_lookup():
 
     spark.sql(f"""
       CREATE OR REPLACE TABLE date_lookup
-      SHALLOW CLONE delta.`{DA.hidden.datasets}/date-lookup`
+      DEEP CLONE delta.`{DA.hidden.datasets}/date-lookup`
       LOCATION '{DA.paths.user_db}/date_lookup'
     """)
 
@@ -551,6 +552,7 @@ DA.process_bronze = _process_bronze
 
 # COMMAND ----------
 
+# DBTITLE 1,Process heart_rate_silver v0
 def _process_heart_rate_silver_v0():
     import time
     from pyspark.sql import functions as F
@@ -566,7 +568,7 @@ def _process_heart_rate_silver_v0():
 
         def upsertToDelta(self, microBatchDF, batch):
             microBatchDF.createOrReplaceTempView(self.update_temp)
-            microBatchDF._jdf.sparkSession().sql(self.sql_query)
+            microBatchDF.sparkSession.sql(self.sql_query)
     
     spark.sql("CREATE TABLE IF NOT EXISTS heart_rate_silver (device_id LONG, time TIMESTAMP, heartrate DOUBLE) USING DELTA")
     
@@ -607,6 +609,7 @@ None # Suppressing Output
 
 # COMMAND ----------
 
+# DBTITLE 1,Process heart_rate_silver
 def _process_heart_rate_silver():
     import time
     from pyspark.sql import functions as F
@@ -622,7 +625,7 @@ def _process_heart_rate_silver():
 
         def upsertToDelta(self, microBatchDF, batch):
             microBatchDF.createOrReplaceTempView(self.update_temp)
-            microBatchDF._jdf.sparkSession().sql(self.sql_query)
+            microBatchDF.sparkSession.sql(self.sql_query)
     
     spark.sql("CREATE TABLE IF NOT EXISTS heart_rate_silver (device_id LONG, time TIMESTAMP, heartrate DOUBLE, bpm_check STRING) USING DELTA")
     
@@ -663,6 +666,7 @@ None # Suppressing Output
 
 # COMMAND ----------
 
+# DBTITLE 1,Process workouts_silver
 def _process_workouts_silver():
     import time
     from pyspark.sql import functions as F
@@ -680,7 +684,7 @@ def _process_workouts_silver():
 
         def upsertToDelta(self, microBatchDF, batch):
             microBatchDF.createOrReplaceTempView(self.update_temp)
-            microBatchDF._jdf.sparkSession().sql(self.query)
+            microBatchDF.sparkSession.sql(self.query)
     
     sql_query = """
         MERGE INTO workouts_silver a
@@ -802,6 +806,7 @@ None # Suppressing Output
 
 # COMMAND ----------
 
+# DBTITLE 1,Batch rank upsert
 def batch_rank_upsert(microBatchDF, batchId):
     from pyspark.sql.window import Window
     from pyspark.sql import functions as F
@@ -815,7 +820,7 @@ def batch_rank_upsert(microBatchDF, batchId):
         .drop("rank")
         .createOrReplaceTempView("ranked_updates"))
     
-    microBatchDF._jdf.sparkSession().sql("""
+    microBatchDF.sparkSession.sql("""
         MERGE INTO users u
         USING ranked_updates r
         ON u.alt_id=r.alt_id
@@ -993,4 +998,3 @@ def _validate_total(expected, actual, name):
     assert expected == actual, f"Expected {expected:,} {name}, found {actual:,} {name}"
     print(f"Found {actual:,} {name} as expected.")
     return actual
-

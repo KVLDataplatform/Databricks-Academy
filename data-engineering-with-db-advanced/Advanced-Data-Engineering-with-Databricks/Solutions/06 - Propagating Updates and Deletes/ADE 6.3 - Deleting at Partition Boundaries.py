@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md-sandbox
-# MAGIC 
+# MAGIC
 # MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 # MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 # MAGIC </div>
@@ -9,17 +9,17 @@
 
 # MAGIC %md
 # MAGIC # Deleting at Partition Boundaries
-# MAGIC 
+# MAGIC
 # MAGIC While we've deleted our PII from our silver tables, we haven't dealt with the fact that this data still exists in our **`bronze`** table.
-# MAGIC 
+# MAGIC
 # MAGIC Note that because of stream composability and the design choice to use a multiplex bronze pattern, enabling Delta Change Data Feed (CDF) to propagate delete information would require redesigning each of our pipelines to take advantage of this output. Without using CDF, modification of data in a table will break downstream composability.
-# MAGIC 
+# MAGIC
 # MAGIC <img src="https://files.training.databricks.com/images/ade/ADE_arch_bronze.png" width="60%" />
-# MAGIC 
+# MAGIC
 # MAGIC In this notebook, you'll learn how to delete partitions of data from Delta Tables and how to configure incremental reads to allow for these deletes.
-# MAGIC 
+# MAGIC
 # MAGIC This functionality is not only useful for permanently deleting PII, but this same pattern can be applied in companies that just want to expunge data older than a certain age from a given table. Similarly, data could be backed up to a cheaper storage tier, and then safely deleted from "active" or "hot" Delta tables to drive savings on cloud storage.
-# MAGIC 
+# MAGIC
 # MAGIC ## Learning Objectives
 # MAGIC By the end of this notebook, students will be able to:
 # MAGIC - Delete data using partition boundaries
@@ -40,9 +40,9 @@
 
 # MAGIC %md
 # MAGIC Our Delta table is partitioned by two fields. 
-# MAGIC 
+# MAGIC
 # MAGIC Our top level partition is the **`topic`** column. 
-# MAGIC 
+# MAGIC
 # MAGIC Run the cell to note the 3 partition directories (and the Delta Log directory) that collectively comprise our **`bronze`** table.
 
 # COMMAND ----------
@@ -79,11 +79,11 @@ print(f"Total: {total}")
 # MAGIC %md
 # MAGIC ## Archiving Data
 # MAGIC If a company wishes to maintain an archive of historic records (but only maintain recent records in production tables), cloud-native settings for auto-archiving data can be configured to move data files automatically to lower-cost storage locations.
-# MAGIC 
+# MAGIC
 # MAGIC The cell below simulates this process (here using copy instead of move). 
-# MAGIC 
+# MAGIC
 # MAGIC Note that because only the data files and partition directories are being relocated, the resultant table will be Parquet by default.
-# MAGIC 
+# MAGIC
 # MAGIC **NOTE**: For best performance, directories should have **`OPTIMIZE`** run to condense small files. Because valid and stale data files are stored side-by-side in Delta Lake files, partitions should also have **`VACUUM`** executed prior to moving any Delta Lake data to a pure Parquet table to ensure only valid files are copied.
 
 # COMMAND ----------
@@ -119,7 +119,7 @@ display(files)
 # MAGIC %md
 # MAGIC ## Deleting at a Partition Boundary
 # MAGIC Here we'll model deleting all **`user_info`** that was received before week 49 of 2019.
-# MAGIC 
+# MAGIC
 # MAGIC Note that we are deleting cleanly along partition boundaries. All the data contained in the specified **`week_part`** directories will be removed from our table.
 
 # COMMAND ----------
@@ -143,9 +143,9 @@ display(files)
 
 # MAGIC %md
 # MAGIC When deleting along partition boundaries, we don't write out new data files; recording the files as removed in the Delta log is sufficient. 
-# MAGIC 
+# MAGIC
 # MAGIC However, file deletion will not actually occur until we **`VACUUM`** our table. 
-# MAGIC 
+# MAGIC
 # MAGIC Note that all of our week partitions still exist in our **`user_info`** directory and that data files still exist in each week directory.
 
 # COMMAND ----------
@@ -157,7 +157,7 @@ display(files)
 
 # MAGIC %md
 # MAGIC ## Reviewing and Committing Deletes
-# MAGIC 
+# MAGIC
 # MAGIC By default, the Delta engine will prevent **`VACUUM`** operations with less than 7 days of retention. The cell below overrides this check.
 
 # COMMAND ----------
@@ -168,9 +168,9 @@ spark.conf.set("spark.databricks.delta.retentionDurationCheck.enabled", False)
 
 # MAGIC %md
 # MAGIC Adding the **`DRY RUN`** keyword to the end of our **`VACUUM`** statement allows us to preview files to be deleted before they are permanently removed. 
-# MAGIC 
+# MAGIC
 # MAGIC Note that at this moment we could still recover our deleted data by running:
-# MAGIC 
+# MAGIC
 # MAGIC <strong><code>
 # MAGIC RESTORE bronze<br/>
 # MAGIC TO VERSION AS OF {version}
@@ -230,16 +230,16 @@ except Exception as e:
 
 # MAGIC %md
 # MAGIC ## Recreating Full Table History
-# MAGIC 
+# MAGIC
 # MAGIC Note that because Parquet using directory partitions as columns in the resulting dataset, the data that was backed up no longer has a **`topic`** field in its schema.
-# MAGIC 
+# MAGIC
 # MAGIC The logic below addresses this while calling **`UNION`** on the archived and production datasets to recreate the full history of the **`user_info`** topic.
 
 # COMMAND ----------
 
 # MAGIC %sql
 # MAGIC WITH full_bronze_user_info AS (
-# MAGIC 
+# MAGIC
 # MAGIC   SELECT key, value, partition, offset, timestamp, date, week_part 
 # MAGIC   FROM bronze 
 # MAGIC   WHERE topic='user_info'
@@ -252,16 +252,17 @@ except Exception as e:
 
 # MAGIC %md
 # MAGIC ## Updating Streaming Reads to Ignore Changes
-# MAGIC 
+# MAGIC
 # MAGIC The cell below condenses all the code used to perform streaming updates to our **`users`** table.
-# MAGIC 
+# MAGIC
 # MAGIC If you try to execute this code right now, you'll raise an exception
 # MAGIC > Detected deleted data from streaming source
-# MAGIC 
+# MAGIC
 # MAGIC Line 22 of the cell below adds the **`.option("ignoreDeletes", True)`** to the DataStreamReader. This option is all that is necessary to enable streaming processing from Delta tables with partition deletes.
 
 # COMMAND ----------
 
+# DBTITLE 1,Batch rank upsert
 from pyspark.sql import functions as F
 
 schema = """
@@ -305,7 +306,7 @@ def batch_rank_upsert(microBatchDF, batchId):
         .withColumn("rank", F.rank().over(window)).filter("rank == 1").drop("rank")
         .createOrReplaceTempView("ranked_updates"))
     
-    microBatchDF._jdf.sparkSession().sql("""
+    microBatchDF.sparkSession.sql("""
         MERGE INTO users u
         USING ranked_updates r
         ON u.alt_id=r.alt_id

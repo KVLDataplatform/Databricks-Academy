@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md-sandbox
-# MAGIC 
+# MAGIC
 # MAGIC <div style="text-align: center; line-height: 0; padding-top: 9px;">
 # MAGIC   <img src="https://databricks.com/wp-content/uploads/2018/03/db-academy-rgb-1200px.png" alt="Databricks Learning" style="width: 600px">
 # MAGIC </div>
@@ -9,9 +9,9 @@
 
 # MAGIC %md
 # MAGIC # Streaming Design Patterns
-# MAGIC 
+# MAGIC
 # MAGIC The Lakehouse has been designed from the beginning to work seamlessly with datasets that grow infinitely over time. While Spark Structured Streaming is often positioned as a near real-time data processing solution, it combines with Delta Lake to also provide easy batch processing of incremental data while drastically simplifying the overhead required to track data changes over time.
-# MAGIC 
+# MAGIC
 # MAGIC ## Learning Objectives
 # MAGIC By the end of this lessons, student will be able to:
 # MAGIC - Use Structured Streaming to complete simple incremental ETL
@@ -34,22 +34,22 @@
 
 # MAGIC %md
 # MAGIC ## Simple Incremental ETL
-# MAGIC 
+# MAGIC
 # MAGIC Likely the highest volume of data being processed by most organizations could largely be describing as moving data from one location to another while applying light transformations and validations. 
-# MAGIC 
+# MAGIC
 # MAGIC As most source data continues to grow as time passes, it's appropriate to refer to this data as incremental (sometimes also referred to as streaming data). 
-# MAGIC 
+# MAGIC
 # MAGIC Structured Streaming and Delta Lake make incremental ETL easy. 
-# MAGIC 
+# MAGIC
 # MAGIC Below we'll create a simple table and insert some values.
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC 
+# MAGIC
 # MAGIC CREATE TABLE bronze 
 # MAGIC (id INT, name STRING, value DOUBLE); 
-# MAGIC 
+# MAGIC
 # MAGIC INSERT INTO bronze
 # MAGIC VALUES (1, "Yve", 1.0),
 # MAGIC        (2, "Omar", 2.5),
@@ -79,7 +79,7 @@ def update_silver():
 
 # MAGIC %md
 # MAGIC While this code uses Structured Streaming, it's appropriate to think of this as a triggered batch processing incremental changes.
-# MAGIC 
+# MAGIC
 # MAGIC <img src="https://files.training.databricks.com/images/icon_note_32.png"></img>
 # MAGIC To facilitate the demonstration of structured streams, we are using **`trigger(availableNow=True)`** to slow
 # MAGIC down the processing of the data combined with **`query.awaitTermination()`** to prevent the lesson from
@@ -140,13 +140,13 @@ update_silver()
 
 # MAGIC %md
 # MAGIC ## Writing to Multiple Tables
-# MAGIC 
+# MAGIC
 # MAGIC Those familiar with Structured Streaming may be aware that the **`foreachBatch`** method provides the option to execute custom data writing logic on each microbatch of streaming data.
-# MAGIC 
+# MAGIC
 # MAGIC The Databricks Runtime provides guarantees that these <a href="https://docs.databricks.com/delta/delta-streaming.html#idempot-write" target="_blank">streaming Delta Lake writes will be idempotent</a>, even when writing to multiple tables, IF you set the "txnVersion" and "txnAppId" options. This is especially useful when data for multiple tables might be contained within a single record.  This was added in <a href="https://docs.databricks.com/release-notes/runtime/8.4.html" target="_blank">Databricks Runtime 8.4</a>.
-# MAGIC 
+# MAGIC
 # MAGIC The code below first defines the custom writer logic to append records to two new tables, and then demonstrates using this function within **`foreachBatch`**.
-# MAGIC 
+# MAGIC
 # MAGIC There is some debate as to whether you should use foreachBatch to write to multiple tables or to simply use multiple streams.  Generally multiple streams is the simpler and more efficient design because it allows streaming jobs writing to each table to run independently of each other.  Whereas using foreachBatch to write to multiple tables has the advantage of keeping writes to the two tables in sync.
 
 # COMMAND ----------
@@ -244,9 +244,9 @@ split_stream()
 
 # MAGIC %md
 # MAGIC ## Update Aggregates in a Key-Value Store
-# MAGIC 
+# MAGIC
 # MAGIC Incremental aggregation can be useful for a number of purposes, including dashboarding and enriching reports with current summary data.
-# MAGIC 
+# MAGIC
 # MAGIC The logic below defines a handful of aggregations against the **`silver`** table.
 
 # COMMAND ----------
@@ -271,11 +271,11 @@ def update_key_value():
 
 # MAGIC %md
 # MAGIC **NOTE**: Because the transformations above require shuffling data, setting the number of shuffle partitions to the maximum number of cores will provide more efficient performance. 
-# MAGIC 
+# MAGIC
 # MAGIC The default number of shuffle partitions (200) can cripple many streaming jobs.
-# MAGIC 
+# MAGIC
 # MAGIC As such, it's a reasonably good practice to simply use the maximum number of cores as the high end, and if smaller, maintain a factor of the number of cores.
-# MAGIC 
+# MAGIC
 # MAGIC Naturally, this generalized advice changes as you increase the number of streams running on a single cluster.
 
 # COMMAND ----------
@@ -329,7 +329,7 @@ update_key_value()
 # MAGIC %md
 # MAGIC ## Processing Change Data Capture Data
 # MAGIC While the change data capture (CDC) data emitted by various systems will vary greatly, incrementally processing these data with Databricks is straightforward.
-# MAGIC 
+# MAGIC
 # MAGIC Here the **`bronze_status`** table will represent the raw CDC information, rather than row-level data.
 
 # COMMAND ----------
@@ -337,7 +337,7 @@ update_key_value()
 # MAGIC %sql
 # MAGIC CREATE TABLE bronze_status 
 # MAGIC (user_id INT, status STRING, update_type STRING, processed_timestamp TIMESTAMP);
-# MAGIC 
+# MAGIC
 # MAGIC INSERT INTO bronze_status
 # MAGIC VALUES  (1, "new", "insert", current_timestamp()),
 # MAGIC         (2, "repeat", "update", current_timestamp()),
@@ -359,11 +359,12 @@ update_key_value()
 
 # MAGIC %md
 # MAGIC The **`MERGE`** statement can easily be written with SQL to apply CDC changes appropriately, given the type of update received.
-# MAGIC 
+# MAGIC
 # MAGIC The rest of the **`upsert_cdc`** method contains the logic necessary to run SQL code against a micro-batch in a PySpark DataStreamWriter.
 
 # COMMAND ----------
 
+# DBTITLE 1,Upsert CDC
 def upsert_cdc(microBatchDF, batchID):
     microBatchDF.createTempView("bronze_batch")
     
@@ -380,7 +381,7 @@ def upsert_cdc(microBatchDF, batchID):
           VALUES (b.user_id, b.status, b.processed_timestamp)
     """
     
-    microBatchDF._jdf.sparkSession().sql(query)
+    microBatchDF.sparkSession.sql(query)
     
 def streaming_merge():
     query = (spark.readStream
@@ -443,7 +444,7 @@ streaming_merge()
 
 # MAGIC %md
 # MAGIC ## Joining Two Incremental Tables
-# MAGIC 
+# MAGIC
 # MAGIC Note that there are many intricacies around watermarking and windows when dealing with incremental joins, and that not all join types are supported.
 
 # COMMAND ----------
@@ -467,7 +468,7 @@ def stream_stream_join():
 
 # MAGIC %md
 # MAGIC Note that the logic defined above does not set a **`trigger`** option.
-# MAGIC 
+# MAGIC
 # MAGIC This means that the stream will run in continuous execution mode, triggering every 500ms by default.
 
 # COMMAND ----------
@@ -478,9 +479,9 @@ query = stream_stream_join()
 
 # MAGIC %md 
 # MAGIC This also means that it is possible to read the new tables before there is any data in them.
-# MAGIC 
+# MAGIC
 # MAGIC Because the stream never stops we can't block until the trigger-available-now stream has terminated with **`awaitTermination()`**.
-# MAGIC 
+# MAGIC
 # MAGIC Instead we can block until "some" data is processed by leveraging **`query.recentProgress`**.
 
 # COMMAND ----------
@@ -506,9 +507,9 @@ display(spark.readStream.table("joined_streams"))
 # COMMAND ----------
 
 # MAGIC %md 
-# MAGIC 
+# MAGIC
 # MAGIC <img src="https://files.training.databricks.com/images/icon_note_32.png"> Anytime a streaming read is displayed to a notebook, a streaming job will begin.
-# MAGIC 
+# MAGIC
 # MAGIC Here a second stream is started.  One is processing the data as part of our original pipline, and now a second streaming job is running to update the **`display()`** function with the latest results.
 
 # COMMAND ----------
@@ -558,9 +559,9 @@ for stream in spark.streams.active:
 
 # MAGIC %md
 # MAGIC ## Join Incremental and Static Data
-# MAGIC 
+# MAGIC
 # MAGIC While incremental tables are ever-appending, static tables typically can be thought of as containing data that may be changed or overwritten.
-# MAGIC 
+# MAGIC
 # MAGIC Because of Delta Lake's transactional guarantees and caching, Databricks ensures that each microbatch of streaming data that's joined back to a static table will contain the current version of data from the static table.
 
 # COMMAND ----------

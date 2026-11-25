@@ -4,10 +4,10 @@
 # COMMAND ----------
 
 # MAGIC %md <i18n value="1372d675-796a-4bbb-9d83-356d3b1b297e"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC # Exploring the Results of a DLT Pipeline
-# MAGIC 
+# MAGIC
 # MAGIC Run the following cell to enumerate the output of your storage location:
 
 # COMMAND ----------
@@ -18,8 +18,8 @@ display(files)
 # COMMAND ----------
 
 # MAGIC %md <i18n value="9a19b4f8-479b-4dfb-80a8-05e08cfd9eb0"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC The **system** directory captures events associated with the pipeline.
 
 # COMMAND ----------
@@ -30,10 +30,10 @@ display(files)
 # COMMAND ----------
 
 # MAGIC %md <i18n value="da333edd-ee6d-4892-9da0-29f38d96e14f"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC These event logs are stored as a Delta table. 
-# MAGIC 
+# MAGIC
 # MAGIC Let's query the table.
 
 # COMMAND ----------
@@ -44,20 +44,26 @@ display(files)
 # COMMAND ----------
 
 # MAGIC %md <i18n value="303e482b-e3cd-48eb-b9be-5357e07803aa"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC Let's view the contents of the *tables* directory.
 
 # COMMAND ----------
 
-files = dbutils.fs.ls(f"{DA.paths.working_dir}/storage/tables")
-display(files)
+# DBTITLE 1,List pipeline tables
+# On current SDP runtimes, tables published to a target schema are no longer
+# written under <storage_location>/tables; fall back to listing the schema's tables.
+try:
+    files = dbutils.fs.ls(f"{DA.paths.working_dir}/storage/tables")
+    display(files)
+except Exception:
+    display(spark.sql("SHOW TABLES"))
 
 # COMMAND ----------
 
 # MAGIC %md <i18n value="6c5ffd14-74db-4ec2-8764-526da08840ab"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC Let's query the gold table.
 
 # COMMAND ----------
@@ -68,4 +74,3 @@ display(files)
 # COMMAND ----------
 
 DA.cleanup()
-

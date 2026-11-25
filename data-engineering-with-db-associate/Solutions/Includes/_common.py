@@ -61,8 +61,27 @@ __install_libraries()
 
 # COMMAND ----------
 
+# DBTITLE 1,Course configuration
 import time
+
+# Compatibility shim: urllib3 >= 2.0 (shipped with DBR 14+) removed Retry.BACKOFF_MAX,
+# which the dbacademy library still references.
+from urllib3.util.retry import Retry as __Retry
+if not hasattr(__Retry, "BACKOFF_MAX"):
+    __Retry.BACKOFF_MAX = getattr(__Retry, "DEFAULT_BACKOFF_MAX", 120)
+
 from dbacademy import dbgems
+
+# Compatibility shim: on DBR 18 the Py4J call CommandContext.tags() used by
+# dbgems.get_tags() is no longer whitelisted. Fall back to Spark conf for clusterId.
+__orig_get_tags = dbgems.get_tags
+def __safe_get_tags():
+    try:
+        return __orig_get_tags()
+    except Exception:
+        return {"clusterId": spark.conf.get("spark.databricks.clusterUsageTags.clusterId", None)}
+dbgems.get_tags = __safe_get_tags
+
 from dbacademy.dbhelper import DBAcademyHelper, Paths, CourseConfig, LessonConfig
 
 # The following attributes are externalized to make them easy
@@ -75,8 +94,8 @@ course_config = CourseConfig(course_code = "dewd",
                              install_min_time = "5 min",
                              install_max_time = "15 min",
                              remote_files = remote_files,
-                             supported_dbrs = ["10.4.x-scala2.12", "10.4.x-photon-scala2.12", "11.3.x-scala2.12", "11.3.x-photon-scala2.12", "11.3.x-cpu-ml-scala2.12", "12.2.x-scala2.12", "12.2.x-photon-scala2.12", "13.3.x-scala2.12", "13.3.x-photon-scala2.12", "14.3.x-scala2.12", "14.3.x-photon-scala2.12", "15.4.x-scala2.12", "15.4.x-photon-scala2.12"],
-                             expected_dbrs = "10.4.x-scala2.12, 10.4.x-photon-scala2.12, 11.3.x-scala2.12, 11.3.x-photon-scala2.12, 11.3.x-cpu-ml-scala2.12, 12.2.x-scala2.12, 12.2.x-photon-scala2.12, 13.3.x-scala2.12, 13.3.x-photon-scala2.12, 14.3.x-scala2.12, 14.3.x-photon-scala2.12, 15.4.x-scala2.12, 15.4.x-photon-scala2.12")
+                             supported_dbrs = ["17.3.x-scala2.13", "17.3.x-photon-scala2.13", "17.3.x-cpu-ml-scala2.13", "18.x-scala2.13", "18.x-photon-scala2.13", "18.x-cpu-ml-scala2.13", "18.0.x-scala2.13", "18.0.x-photon-scala2.13", "18.0.x-cpu-ml-scala2.13"],
+                             expected_dbrs = "17.3.x-scala2.13, 17.3.x-photon-scala2.13, 17.3.x-cpu-ml-scala2.13, 18.x-scala2.13, 18.x-photon-scala2.13, 18.x-cpu-ml-scala2.13, 18.0.x-scala2.13, 18.0.x-photon-scala2.13, 18.0.x-cpu-ml-scala2.13")
 
 # For this course, these values will be true 99% of the time.
 lesson_config = LessonConfig(name = None,
@@ -163,4 +182,3 @@ class DltDataFactory:
 
             dbutils.fs.cp(f"{self.source}/{curr_file}", target_dir)
             self.curr_mo += 1
-

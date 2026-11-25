@@ -1,9 +1,9 @@
 # Databricks notebook source
 # MAGIC %md <i18n value="46a8383a-807d-42a9-9bdc-09a34e0b7bd0"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC # Exploring the Results of a DLT Pipeline
-# MAGIC 
+# MAGIC
 # MAGIC This notebook explores the execution results of a DLT pipeline.
 
 # COMMAND ----------
@@ -18,8 +18,8 @@ display(files)
 # COMMAND ----------
 
 # MAGIC %md <i18n value="4b109d6f-b0d4-4ded-ac54-a12f722599a9"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC The **`system`** directory captures events associated with the pipeline.
 
 # COMMAND ----------
@@ -30,8 +30,8 @@ display(files)
 # COMMAND ----------
 
 # MAGIC %md <i18n value="fd83d9bb-db62-456a-8a51-33e8680c0d47"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC These event logs are stored as a Delta table. Let's query the table.
 
 # COMMAND ----------
@@ -42,20 +42,26 @@ display(files)
 # COMMAND ----------
 
 # MAGIC %md <i18n value="b0c12205-fc10-4a63-a73e-d5cded65ef51"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC Let's view the contents of the *tables* directory.
 
 # COMMAND ----------
 
-files = dbutils.fs.ls(f"{DA.paths.storage_location}/tables")
-display(files)
+# DBTITLE 1,List pipeline tables
+# On current SDP runtimes, tables published to a target schema are no longer
+# written under <storage_location>/tables; fall back to listing the schema's tables.
+try:
+    files = dbutils.fs.ls(f"{DA.paths.storage_location}/tables")
+    display(files)
+except Exception:
+    display(spark.sql("SHOW TABLES"))
 
 # COMMAND ----------
 
 # MAGIC %md <i18n value="e5072a3f-3a1f-4e4d-89fa-bda3926cb6ba"/>
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC Let's query the gold table.
 
 # COMMAND ----------
@@ -66,11 +72,10 @@ display(files)
 # COMMAND ----------
 
 # MAGIC %md <i18n value="69333106-f421-45f0-a846-1c3d4fc8ddcb"/>
-# MAGIC 
+# MAGIC
 # MAGIC  
 # MAGIC Run the following cell to delete the tables and files associated with this lesson.
 
 # COMMAND ----------
 
 DA.cleanup()
-
